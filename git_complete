@@ -1,0 +1,420 @@
+# Git for DevOps Engineers: Daily Commands
+
+For DevOps work, you will use Git to manage application code, Linux shell scripts, Dockerfiles, Kubernetes manifests, Ansible playbooks, Terraform configurations, and CI/CD pipeline files.
+
+Let's learn the commands you will actually use on a Linux server, with practical examples and a real-world workflow.
+
+## 1. Understand the Git workflow
+
+Working directory
+
+Create or modify files
+
+Staging area
+
+`git add` — prepare changes
+
+Local repository
+
+`git commit` — save a snapshot
+
+Remote repository
+
+`git push` — upload commits to GitHub or GitLab
+
+Remember these four commands:
+
+- `git status` — check what changed.
+- `git add` — stage changes.
+- `git commit` — save changes locally.
+- `git push` — send commits to a remote repository.
+
+Important: A commit is saved locally. It does not automatically upload your work to GitHub or GitLab.
+
+## 2. Install Git and configure your identity
+
+On RHEL, Rocky Linux, AlmaLinux, or Fedora:
+
+```
+sudo dnf install git -y
+git --version
+```
+
+On Ubuntu or Debian:
+
+```
+sudo apt update
+sudo apt install git -y
+git --version
+```
+
+Configure your Git identity:
+
+```
+git config --global user.name "DevOps Engineer"
+git config --global user.email "devops@example.com"
+```
+
+Verify your configuration:
+
+```
+git config --global --list
+```
+
+Use your own name and email. The identity is recorded in commits; it is not the same as your GitHub login credentials.
+
+## 3. Create your first DevOps repository
+
+Let's create a repository for a shell script used to check server health.
+
+```
+mkdir -p ~/devops-practice/server-monitor
+cd ~/devops-practice/server-monitor
+
+git init
+```
+
+Create a script:
+
+```
+cat > health-check.sh <<'EOF'
+#!/bin/bash
+
+echo "Server Health Report"
+echo "Hostname: $(hostname)"
+echo "Uptime: $(uptime -p)"
+echo "Disk usage:"
+df -h /
+EOF
+
+chmod +x health-check.sh
+./health-check.sh
+```
+
+Check the repository:
+
+```
+git status
+```
+
+You should see `health-check.sh` listed as an untracked file.
+
+Stage and commit it:
+
+```
+git add health-check.sh
+git status
+git commit -m "Add server health check script"
+git log --oneline
+```
+
+You have now created your first Git commit.
+
+## 4. Daily Git commands you should know
+
+### A. Check repository status
+
+```
+git status
+git status --short
+```
+
+Example output:
+
+```
+ M health-check.sh
+?? deploy.sh
+```
+
+- `M` — a tracked file was modified.
+- `??` — a new, untracked file.
+- `A` — a file is staged as added.
+
+Use `git status` frequently before committing or pulling changes.
+
+### B. Add and commit files
+
+```
+# Stage a specific file
+git add health-check.sh
+
+# Stage all changes under the current directory
+git add .
+
+# Review staged changes
+git diff --staged
+
+# Commit staged changes
+git commit -m "Update health check script"
+```
+
+DevOps best practice: Prefer meaningful commits, such as `Fix disk usage check`, instead of vague messages like `update` or `changes`.
+
+### C. View changes before committing
+
+Modify your script:
+
+```
+echo 'echo "Memory usage:"' >> health-check.sh
+```
+
+Now run:
+
+```
+# Show unstaged changes
+git diff
+
+# Stage changes
+git add health-check.sh
+
+# Show staged changes
+git diff --staged
+```
+
+This helps you review changes before they become part of the repository history.
+
+## 5. Branch management in daily work
+
+In a team, you generally create a separate branch for a new feature or bug fix instead of making changes directly on `main`.
+
+```
+# List branches
+git branch
+
+# Create and switch to a new branch
+git switch -c feature/add-memory-check
+
+# Check current branch
+git branch --show-current
+```
+
+Make a change and commit it:
+
+```
+echo 'free -h' >> health-check.sh
+
+git add health-check.sh
+git commit -m "Add memory check"
+```
+
+Switch back to the main branch and merge your changes:
+
+```
+git switch main
+git merge feature/add-memory-check
+```
+
+If the default branch in your repository is named `master`, use `master` instead of `main`.
+
+To remove the local feature branch after merging:
+
+```
+git branch -d feature/add-memory-check
+```
+
+## 6. Work with GitHub or GitLab
+
+A remote repository lets you share code with teammates and CI/CD systems.
+
+Example: use an existing GitHub repository URL in place of the sample URL below.
+
+```
+# Check configured remotes
+git remote -v
+
+# Add a remote if one is not configured
+git remote add origin https://github.com/USERNAME/server-monitor.git
+
+# Push the main branch
+git push -u origin main
+```
+
+The GitHub repository must exist, and you must have permission to push to it.
+
+Common commands:
+
+| Command                      | When to use it                                           |
+| ---------------------------- | -------------------------------------------------------- |
+| `git fetch origin`           | Download remote updates without integrating them         |
+| `git pull`                   | Fetch and integrate changes from the configured upstream |
+| `git pull --rebase`          | Fetch changes and replay your local commits on top       |
+| `git push`                   | Upload local commits                                     |
+| `git push -u origin feature` | Publish a new branch and set its upstream                |
+| `git remote -v`              | Check remote URLs                                        |
+
+Typical team workflow:
+
+```
+git switch main
+git pull --ff-only
+
+git switch -c feature/update-dockerfile
+
+# Edit Dockerfile here
+git add Dockerfile
+git commit -m "Update Dockerfile"
+
+git push -u origin feature/update-dockerfile
+```
+
+The feature branch can then be reviewed through a pull request or merge request.
+
+## 7. Temporarily save unfinished work with stash
+
+Suppose you are editing an Ansible playbook, but you need to switch branches without committing incomplete changes.
+
+```
+# Save tracked-file changes
+git stash push -m "WIP Ansible changes"
+
+# List saved changes
+git stash list
+
+# Restore changes and keep the stash
+git stash apply
+
+# Restore changes and remove the stash entry
+git stash pop
+```
+
+Untracked files are not included by default. To stash those too, use:
+
+```
+git stash push -u -m "WIP including new files"
+```
+
+## 8. Undo mistakes safely
+
+| Requirement                                  | Command                         |
+| -------------------------------------------- | ------------------------------- |
+| Unstage a file                               | `git restore --staged file.txt` |
+| Discard unstaged changes in a file           | `git restore file.txt`          |
+| Reverse a committed change with a new commit | `git revert COMMIT_ID`          |
+| Undo last commit but retain staged changes   | `git reset --soft HEAD~1`       |
+
+To identify a commit:
+
+```
+git log --oneline -5
+```
+
+Then reverse a specific commit:
+
+```
+git revert COMMIT_ID
+```
+
+Avoid `git reset --hard` on shared branches or production repositories unless you fully understand the consequences. It can permanently discard uncommitted work.
+
+## 9. Use `.gitignore` in DevOps projects
+
+Secrets, generated files, and local configuration should generally not be committed.
+
+Create a `.gitignore` file:
+
+```
+cat > .gitignore <<'EOF'
+.env
+*.log
+__pycache__/
+.terraform/
+*.tfstate
+*.tfstate.backup
+EOF
+```
+
+Stage and commit it:
+
+```
+git add .gitignore
+git commit -m "Add Git ignore rules"
+```
+
+These rules are examples; adjust them to your project. Terraform state files can contain sensitive information, so do not commit them unless your storage and security design explicitly permits it.
+
+If a file was already tracked, adding it to `.gitignore` will not stop tracking it. To keep the local file but remove it from Git tracking:
+
+```
+git rm --cached .env
+```
+
+Then commit the removal. If a secret has already been pushed, remove it from the repository and rotate the exposed credential.
+
+## 10. Troubleshooting commands
+
+```
+# View recent commits
+git log --oneline -10
+
+# Visualize branch history
+git log --oneline --graph --all
+
+# Check current branch
+git branch --show-current
+
+# Check tracked files
+git ls-files
+
+# See the last commit's changes
+git show --stat HEAD
+
+# Inspect repository remotes
+git remote -v
+
+# Check whether a file is ignored
+git check-ignore -v .env
+```
+
+If Git reports a merge conflict:
+
+```
+git status
+```
+
+Open each conflicted file, resolve the conflict markers, and then stage the resolved file:
+
+```
+git add conflicted-file.txt
+git commit
+```
+
+If the conflict occurred during a rebase, use `git rebase --continue` after resolving and staging the files. To cancel a rebase, use `git rebase --abort`.
+
+## 11. Your daily DevOps Git checklist
+
+## Daily workflow
+
+0 of 8
+
+Check the current branch and repository status
+
+Fetch or pull the latest approved changes
+
+Create a feature branch for your task
+
+Edit and test scripts or configuration files
+
+Review changes using git diff
+
+Stage only the intended files
+
+Commit with a meaningful message
+
+Push the branch and open a pull request
+
+Reset checklist
+
+## 12. Practice task
+
+Try completing this without copying the entire workflow from above:
+
+1. Create a repository called `docker-deployment`.
+2. Create a `Dockerfile` and commit it.
+3. Create a branch named `feature/nginx-config`.
+4. Add an `nginx.conf` file and commit it.
+5. Merge the feature branch into `main`.
+6. Inspect the history using `git log --oneline --graph --all`.
+
+This exercise covers the essential commands you will use when managing Docker and application deployment code.
+
+Next recommended step: Learn how to use Git with Jenkins CI/CD, including webhooks, credentials, branch-based builds, and automatic deployments to Linux servers.
