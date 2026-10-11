@@ -79,3 +79,6 @@
 - **View command history**:
   
   `history`
+
+
+and so on
